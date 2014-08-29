@@ -1,0 +1,128 @@
+//
+   Created by haebor on 18.08.2014.
+extends layout
+
+block content
+    script(src='http://ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js')
+    script(src='http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js')
+    link(rel='stylesheet', href='http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css')
+    h1.
+        Let's see where money travels
+    p We like to see where money is travelling. So if you allow us to get your current location it will tell us where the bill that you just scanned went.
+
+    button(onclick='getTheGeoLocation()') Provide Geo Location
+    p
+    dev#geolocationResult
+    p
+    h1.
+        This is where this bill was scanned until now
+    div#map(style='height: 400px;')
+
+    script.
+        function getSerialNumber()
+        {
+            var myUrl = document.URL;
+            var parts = myUrl.split('serial=');
+            var serial = parts[1];
+            return serial;
+        }
+        function storeLocationOnServer(serial, position)
+        {
+            $.ajax({
+                url:  './doupdatelocation',
+                type: "POST",
+                data: {serial: serial, latitude: position.coords.latitude, longitude: position.coords.longitude},
+                datatype: "json",
+                success: function (result)
+                {
+                    // do nothing
+                },
+                error: function (xhr, ajaxOptions, thrownError)
+                {
+                    alert(xhr.status);
+                    alert(thrownError);
+                }
+            });
+        }
+        function storeLocation(output, position)
+        {
+            output.innerHTML = 'Location (latitude, longitude): (' + position.coords.latitude + ', ' + position.coords.longitude + ')';
+            var serial = getSerialNumber();
+            storeLocationOnServer(serial,position);
+            createMap();
+        }
+        function getTheGeoLocation()
+        {
+            var output = document.getElementById("geolocationResult");
+            if("geolocation" in navigator)
+            {
+                navigator.geolocation.getCurrentPosition(
+                    function(position)
+                    {
+                        storeLocation(output,position);
+                    },
+                    function(err)
+                    {
+                        navigator.geolocation.getCurrentPosition(
+                            function(position)
+                            {
+                                storeLocation(output,position);
+                            },
+                            function(err)
+                            {
+                                output.innerHTML = 'Encountered an error: ' + err.message;
+                            },
+                            {
+                                enableHighAccuracy: false,
+                                timeout: 20000, //wait for at most 20 seconds
+                                maximumAge: 0
+                            }
+                        )
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 3000, //wait for at most 3 seconds
+                        maximumAge: 0
+                    }
+                );
+                output.innerHTML = "Obtaining geo location";
+            }
+            else
+            {
+                output.innerHTML = "We couldn't get your geo location, so... sorry"
+            }
+        }
+    script.
+        function createMap()
+        {
+            var myUrl = document.URL;
+            var parts = myUrl.split('serial=');
+            var serial = parts[1];
+            $.get('./billlocations?serial=' + serial).done(function(data){
+                var entries;
+                var locations = [];
+                entries = data;
+                for(idx = 0; idx < entries.length; idx++)
+                {
+                    locations[idx] = [parseFloat(entries[idx].latitude), parseFloat(entries[idx].longitude)];
+                }
+                var map = L.map('map').setView(locations[0], 16);
+                mapLink = '<a href="http://openstreetmap.org">OpenStreetMap</a>';
+
+                //L.tileLayer('http://{s}.tiles.mapbox.com/v3/MapID/{z}/{x}/{y}.png',
+                L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                {
+                    attribution: 'Map data &copy' + mapLink + ' Contributors',
+                    maxZoom: 18
+                }).addTo(map);
+                var polyline = L.polyline(locations,
+                {
+                    color: '#FF66CC',
+                    opacity: 0.8,
+                    weight: 4
+                });
+                map.fitBounds(polyline.getBounds());
+                polyline.addTo(map);
+            });
+        }
+        createMap();

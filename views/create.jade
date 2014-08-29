@@ -1,0 +1,161 @@
+//
+   Created by haebor on 24.08.2014.
+
+extends layout
+
+block content
+    script(src="javascripts/raphael-2.1.0-min.js")
+    script(src="javascripts/qrcodesvg.js")
+
+    h1= 'Add serial number'
+
+    form(onsubmit='return process();')
+        input#serial(type='text', placeholder='Serial Number', name='serial')
+        input(type='submit', value='value')
+    button(onclick='reverse();')
+    script.
+        function isEuroCharacter (char)
+        {
+          return !!/[A-Z]/.exec(char[0]);
+        }
+
+        function shortenSerial(serial)
+        {
+            var value = serial.value;
+            var firstChar = value.charAt(0);
+            if((value.length != 12) || (!isEuroCharacter(firstChar)))
+            {
+                return 'Wrong format for Euro note serial number';
+            }
+            var bla = value.substring(2, 12);
+            var decimalNumPart = parseInt(bla);
+            var base36Part = parseBase36(value.charAt(1));
+            var base26Part = parseBase26(value.charAt(0));
+            var asDecimal = base26Part * 36 * Math.pow(10, 10) + base36Part * Math.pow(10, 10) + decimalNumPart;
+            var result = base10toBase62(asDecimal);
+            return result;
+        }
+
+        function base10toBase62(decimal)
+        {
+            var vals = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            var base = vals.length;
+            var source = '' + decimal;
+            var result = '';
+            if(decimal == 0)
+            {
+                return '0';
+            }
+            while(decimal >= 1)
+            {
+                var mod = decimal % base;
+                var div = decimal / base;
+                result = vals.charAt(mod) + result;
+                decimal = div;
+            }
+            return result;
+        }
+
+        function parseBase36(char)
+        {
+            var result = parseInt(char);
+            if(isNaN(result))
+            {
+                return 10 + parseBase26(char);
+            }
+            return result;
+        }
+
+        function parseBase26(char)
+        {
+            var vals = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            var result = vals.indexOf(char);
+            if(result == -1)
+            {
+                return NaN;
+            }
+            else
+            {
+                return result;
+            }
+        }
+
+        function process()
+        {
+            var result = document.getElementById("result");
+            var serial = document.getElementById('serial');
+            var shortSerial = shortenSerial(serial);
+            result.innerHTML = shortSerial;
+            var target = 'qrcode';
+            createQRCode('obtr.cc/' + shortSerial, target);
+            return false;
+        }
+
+        function createQRCode(code, target)
+        {
+            var bla = document.getElementById(target).innerHTML = '';
+            var qrCodeSVG = new Qrcodesvg(code, target, 250);
+            qrCodeSVG.draw();
+        }
+
+        function reverse()
+        {
+            var result = document.getElementById('reversed');
+            var input = document.getElementById('result').textContent;
+            result.innerHTML = base62ToSerial(input);
+        }
+
+        function base62ToSerial(base62Num)
+        {
+            var decimalVal = 0;
+            var result = '';
+            for(idx = 0; idx < base62Num.length; idx++)
+            {
+                var a = parseBase62(base62Num.charAt(base62Num.length - idx - 1));
+                var b = Math.pow(62, idx);
+                var ab = a * b;
+                decimalVal = decimalVal + ab;
+            }
+            var decimalPart = decimalVal % Math.pow(10, 10);
+            var div = ((decimalVal - decimalPart) / Math.pow(10, 10));
+            var decimalBase36Part =  div % 36;
+            var base36Part = toBase36(decimalBase36Part);
+            div = div / 36;
+            var decimalBase26Part = div % 26; //this should be superfluous...
+            var base26Part = toBase26(decimalBase26Part);
+            var paddedDecimal = padTo10(decimalPart);
+            return '' + base26Part + base36Part + paddedDecimal;
+        }
+        function padTo10(val)
+        {
+            return pad(val, 10, 0);
+        }
+        function pad(n, width, z)
+        {
+            z = z || '0';
+            n = n + '';
+            return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
+        }
+        function toBase36(val)
+        {
+            return "0123456789ABZDEFGHIJKLMNOPQRSTUVWXYZ".charAt(val);
+        }
+        function toBase26(val)
+        {
+            return "ABZDEFGHIJKLMNOPQRSTUVWXYZ".charAt(val);
+        }
+
+        function parseBase62(char)
+        {
+            return "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".indexOf(char);
+        }
+
+    p.
+      Shortened:
+    dev#result
+    p.
+      Reversed:
+    dev#reversed
+    p.
+      QR-Code
+    div#qrcode

@@ -1,0 +1,20 @@
+//
+   Created by haebor on 17.08.2014.
+
+extends layout
+
+block content
+    h1.
+        List of Bills
+    p List of logged bills
+    div
+    table
+        thead
+            tr: th Bills
+        tbody
+            each bill, i in billindb
+                tr
+                   td #{bill.serial}
+                   td #{bill.timestamp}
+                   td #{bill.longitude},
+                   td #{bill.latitude}
