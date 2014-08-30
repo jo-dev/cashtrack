@@ -43,15 +43,21 @@ block content
             var serial = document.getElementById('serial');
             var shortSerial = shortenSerial(serial);
             result.innerHTML = shortSerial;
-            var target = 'qrcode';
-            createQRCode('obtr.cc/' + shortSerial, target);
+            var target1 = 'qrcode1';
+            var target2 = 'qrcode2';
+            var target3 = 'qrcode3';
+            var target4 = 'qrcode4';
+            createQRCode('obtr.cc/' + shortSerial, target1, 1);
+            createQRCode('obtr.cc/' + shortSerial, target2, 2);
+            createQRCode('obtr.cc/' + shortSerial, target3, 3);
+            createQRCode('obtr.cc/' + shortSerial, target4, 4);
             return false;
         }
 
-        function createQRCode(code, target)
+        function createQRCode(code, target, ecclevel)
         {
             var dummy = document.getElementById(target).innerHTML = '';
-            var qrCodeSVG = new Qrcodesvg(code, target, 250);
+            var qrCodeSVG = new Qrcodesvg(code, target, 250, {"ecclevel" : ecclevel});
             qrCodeSVG.draw();
         }
 
@@ -69,4 +75,7 @@ block content
     dev#reversed
     p.
       QR-Code
-    div#qrcode
+    div#qrcode1
+    div#qrcode2
+    div#qrcode3
+    div#qrcode4
